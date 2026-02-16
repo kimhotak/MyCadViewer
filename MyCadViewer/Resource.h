@@ -84,6 +84,10 @@
 #define IDS_FIND_TAB				302
 #define IDS_EXPLORER				305
 #define IDS_EDIT_MENU				306
+#define ID_VIEW_WIREFRAME			307
+#define ID_VIEW_SHADED				308
+#define ID_MEASURE_DISTANCE			309
+#define ID_MEASURE_CLEAR			310
 
 // 다음은 새 개체에 사용할 기본값입니다.
 //

@@ -18,6 +18,10 @@
 #include <Quantity_Color.hxx>
 #include <Aspect_TypeOfTriedronPosition.hxx>
 #include <V3d_TypeOfVisualization.hxx>
+#include <Geom_Plane.hxx>
+#include <gp_Pln.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <TopoDS_Edge.hxx>
 #pragma warning(pop)
 
 #ifdef _DEBUG
@@ -44,6 +48,11 @@ BEGIN_MESSAGE_MAP(CMyCadViewerView, CView)
 	ON_WM_MBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_MOUSEWHEEL()
+	ON_COMMAND(ID_FILE_OPEN, &CMyCadViewerView::OnFileOpen)
+	ON_COMMAND(ID_VIEW_WIREFRAME, &CMyCadViewerView::OnViewWireframe)
+	ON_COMMAND(ID_VIEW_SHADED, &CMyCadViewerView::OnViewShaded)
+	ON_COMMAND(ID_MEASURE_DISTANCE, &CMyCadViewerView::OnMeasureDistance)
+	ON_COMMAND(ID_MEASURE_CLEAR, &CMyCadViewerView::OnMeasureClear)
 END_MESSAGE_MAP()
 
 // CMyCadViewerView 생성/소멸
@@ -207,6 +216,95 @@ void CMyCadViewerView::OnLButtonDown(UINT nFlags, CPoint point)
 	CView::OnLButtonDown(nFlags, point);
 	if (myView.IsNull()) return;
 
+	// 측정 모드일 때
+	if (myMeasureMode)
+	{
+		// 3D 공간의 점 선택
+		myContext->MoveTo(point.x, point.y, myView, Standard_True);
+
+		// 화면 좌표를 3D 좌표로 변환
+		Standard_Real Xv, Yv, Zv;
+		Standard_Real Xp, Yp, Zp;
+		myView->Convert(point.x, point.y, Xp, Yp, Zp);
+		myView->Eye(Xv, Yv, Zv);
+
+		gp_Pnt eyePnt(Xv, Yv, Zv);
+		gp_Pnt projPnt(Xp, Yp, Zp);
+		gp_Dir dir(gp_Vec(eyePnt, projPnt));
+
+		// 3D 공간에서 객체와의 교차점 찾기
+		Standard_Real depth = 100.0;
+		gp_Pnt point3D = eyePnt.Translated(gp_Vec(dir) * depth);
+
+		if (!myFirstPointSelected)
+		{
+			// 첫 번째 점 선택
+			myFirstPoint = point3D;
+			myFirstPointSelected = true;
+
+			// 첫 번째 점 표시
+			TopoDS_Vertex v1 = BRepBuilderAPI_MakeVertex(myFirstPoint);
+			Handle(AIS_Shape) pointShape = new AIS_Shape(v1);
+			pointShape->SetColor(Quantity_NOC_RED);
+			pointShape->SetWidth(5.0);
+			myContext->Display(pointShape, Standard_True);
+
+			AfxMessageBox(_T("첫 번째 점이 선택되었습니다. 두 번째 점을 선택하세요."));
+		}
+		else
+		{
+			// 두 번째 점 선택 - 치수 생성
+			gp_Pnt secondPoint = point3D;
+
+			// 두 점을 잇는 엣지 생성
+			TopoDS_Vertex v1 = BRepBuilderAPI_MakeVertex(myFirstPoint);
+			TopoDS_Vertex v2 = BRepBuilderAPI_MakeVertex(secondPoint);
+			TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(myFirstPoint, secondPoint);
+
+			// 점 표시
+			Handle(AIS_Shape) pointShape1 = new AIS_Shape(v1);
+			pointShape1->SetColor(Quantity_NOC_RED);
+			pointShape1->SetWidth(5.0);
+			myContext->Display(pointShape1, Standard_True);
+
+			Handle(AIS_Shape) pointShape2 = new AIS_Shape(v2);
+			pointShape2->SetColor(Quantity_NOC_RED);
+			pointShape2->SetWidth(5.0);
+			myContext->Display(pointShape2, Standard_True);
+
+			// 거리 치수 생성
+			Handle(PrsDim_LengthDimension) lengthDim = new PrsDim_LengthDimension();
+
+			// 평면 설정
+			gp_Pln plane(myFirstPoint, gp::DZ());
+			lengthDim->SetMeasuredGeometry(myFirstPoint, secondPoint, plane);
+
+			// 치수 스타일 설정
+			Handle(Prs3d_DimensionAspect) dimAspect = new Prs3d_DimensionAspect();
+			dimAspect->MakeArrows3d(Standard_False);
+			dimAspect->MakeText3d(Standard_True);
+			dimAspect->TextAspect()->SetHeight(5.0);
+			dimAspect->SetCommonColor(Quantity_NOC_YELLOW);
+			dimAspect->MakeUnitsDisplayed(Standard_False);
+			lengthDim->SetDimensionAspect(dimAspect);
+
+			myDimensions.Append(lengthDim);
+			myContext->Display(lengthDim, Standard_True);
+
+			// 거리 계산 및 표시
+			Standard_Real distance = myFirstPoint.Distance(secondPoint);
+			CString msg;
+			msg.Format(_T("측정 거리: %.2f mm"), distance);
+			AfxMessageBox(msg);
+
+			// 다음 측정을 위해 리셋
+			myFirstPointSelected = false;
+		}
+
+		myView->Redraw();
+		return;
+	}
+
 	SetCapture();
 	myDragMode = DragMode::Rotate;
 	myLastPt = point;
@@ -277,4 +375,122 @@ BOOL CMyCadViewerView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	myView->Redraw();
 
 	return TRUE;
+}
+
+void CMyCadViewerView::OnFileOpen()
+{
+	CFileDialog dlg(TRUE, _T("step"), NULL,
+		OFN_HIDEREADONLY | OFN_FILEMUSTEXIST,
+		_T("STEP Files (*.step;*.stp)|*.step;*.stp|All Files (*.*)|*.*||"));
+
+	if (dlg.DoModal() == IDOK)
+	{
+		CString filePath = dlg.GetPathName();
+		LoadStepFile(filePath);
+	}
+}
+
+void CMyCadViewerView::LoadStepFile(const CString& filePath)
+{
+	if (myContext.IsNull())
+	{
+		AfxMessageBox(_T("OCCT context not initialized"));
+		return;
+	}
+
+	STEPControl_Reader reader;
+	IFSelect_ReturnStatus status = reader.ReadFile(CT2A(filePath));
+
+	if (status != IFSelect_RetDone)
+	{
+		AfxMessageBox(_T("Failed to read STEP file"));
+		return;
+	}
+
+	Standard_Integer nbRoots = reader.TransferRoots();
+	if (nbRoots == 0)
+	{
+		AfxMessageBox(_T("No shapes found in STEP file"));
+		return;
+	}
+
+	TopoDS_Shape shape = reader.OneShape();
+
+	myContext->RemoveAll(Standard_False);
+
+	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
+	myContext->Display(aisShape, Standard_True);
+
+	FitAll();
+}
+
+void CMyCadViewerView::FitAll()
+{
+	if (!myView.IsNull())
+	{
+		myView->FitAll();
+		myView->ZFitAll();
+		myView->Redraw();
+	}
+}
+
+void CMyCadViewerView::OnViewWireframe()
+{
+	if (myContext.IsNull())
+		return;
+
+	myContext->SetDisplayMode(AIS_WireFrame, Standard_True);
+	myView->Redraw();
+}
+
+void CMyCadViewerView::OnViewShaded()
+{
+	if (myContext.IsNull())
+		return;
+
+	myContext->SetDisplayMode(AIS_Shaded, Standard_True);
+	myView->Redraw();
+}
+
+void CMyCadViewerView::OnMeasureDistance()
+{
+	if (myContext.IsNull())
+		return;
+
+	myMeasureMode = !myMeasureMode;
+	myFirstPointSelected = false;
+
+	if (myMeasureMode)
+	{
+		AfxMessageBox(_T("측정 모드가 활성화되었습니다. 첫 번째 점을 클릭하세요.\n(회전/이동을 하려면 측정 모드를 다시 토글하세요)"));
+	}
+	else
+	{
+		AfxMessageBox(_T("측정 모드가 비활성화되었습니다."));
+	}
+}
+
+void CMyCadViewerView::OnMeasureClear()
+{
+	if (myContext.IsNull())
+		return;
+
+	// 모든 치수 제거
+	for (NCollection_List<Handle(PrsDim_LengthDimension)>::Iterator it(myDimensions); it.More(); it.Next())
+	{
+		myContext->Remove(it.Value(), Standard_False);
+	}
+	myDimensions.Clear();
+
+	myMeasureMode = false;
+	myFirstPointSelected = false;
+
+	myView->Redraw();
+	AfxMessageBox(_T("모든 측정 치수가 제거되었습니다."));
+}
+
+void CMyCadViewerView::StartMeasureDistance()
+{
+	myMeasureMode = true;
+	myFirstPointSelected = false;
 }

@@ -8,11 +8,20 @@
 #pragma warning(disable: 4996)
 #include <Standard_Handle.hxx>
 #include <AIS_InteractiveContext.hxx>
+#include <AIS_Shape.hxx>
 #include <V3d_Viewer.hxx>
 #include <V3d_View.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <Aspect_DisplayConnection.hxx>
 #include <WNT_Window.hxx>
+#include <STEPControl_Reader.hxx>
+#include <TopoDS_Shape.hxx>
+#include <PrsDim_LengthDimension.hxx>
+#include <Geom_CartesianPoint.hxx>
+#include <gp_Pnt.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <NCollection_List.hxx>
 #pragma warning(pop)
 
 
@@ -28,6 +37,9 @@ public:
 
 // 작업입니다.
 public:
+	void LoadStepFile(const CString& filePath);
+	void FitAll();
+	void StartMeasureDistance();
 
 // 재정의입니다.
 public:
@@ -62,6 +74,11 @@ protected:
 	afx_msg void OnMButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
+	afx_msg void OnFileOpen();
+	afx_msg void OnViewWireframe();
+	afx_msg void OnViewShaded();
+	afx_msg void OnMeasureDistance();
+	afx_msg void OnMeasureClear();
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -74,10 +91,16 @@ private:
 
 	bool myInited = false;
 
-	enum class DragMode { None, Rotate, Pan };
+	enum class DragMode { None, Rotate, Pan, Measure };
 	DragMode myDragMode = DragMode::None;
 	CPoint   myLastPt{};
 	bool     myRotating = false;
+
+	// 측정 관련 변수
+	bool     myMeasureMode = false;
+	gp_Pnt   myFirstPoint;
+	bool     myFirstPointSelected = false;
+	NCollection_List<Handle(PrsDim_LengthDimension)> myDimensions;
 };
 
 #ifndef _DEBUG  // MyCadViewerView.cpp의 디버그 버전
