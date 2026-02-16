@@ -273,7 +273,7 @@ BOOL CMyCadViewerView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	const Standard_Real factor = (zDelta > 0) ? 0.9 : 1.1;
 
 	const int x = pt.x, y = pt.y;
-	myView->Zoom(x, y, (int)(x + 100 * factor), (int)(y + 100 * factor));
+	myView->Zoom(x, y, (int)(x * factor), (int)(y * factor));
 	myView->Redraw();
 
 	return TRUE;
