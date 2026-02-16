@@ -38,6 +38,12 @@ BEGIN_MESSAGE_MAP(CMyCadViewerView, CView)
 	ON_WM_RBUTTONUP()
 	ON_WM_PAINT()
 	ON_WM_SIZE()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_WM_MBUTTONDOWN()
+	ON_WM_MBUTTONUP()
+	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSEWHEEL()
 END_MESSAGE_MAP()
 
 // CMyCadViewerView 생성/소멸
@@ -194,4 +200,81 @@ void CMyCadViewerView::OnSize(UINT nType, int cx, int cy)
 		myView->MustBeResized();
 		myView->Redraw();
 	}
+}
+
+void CMyCadViewerView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CView::OnLButtonDown(nFlags, point);
+	if (myView.IsNull()) return;
+
+	SetCapture();
+	myDragMode = DragMode::Rotate;
+	myLastPt = point;
+
+	myView->StartRotation(point.x, point.y);
+	myRotating = true;
+}
+
+void CMyCadViewerView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	CView::OnLButtonUp(nFlags, point);
+	if (GetCapture() == this) ReleaseCapture();
+
+	myDragMode = DragMode::None;
+	myRotating = false;
+}
+
+void CMyCadViewerView::OnMButtonDown(UINT nFlags, CPoint point)
+{
+	CView::OnMButtonDown(nFlags, point);
+	if (myView.IsNull()) return;
+
+	SetCapture();
+	myDragMode = DragMode::Pan;
+	myLastPt = point;
+}
+
+void CMyCadViewerView::OnMButtonUp(UINT nFlags, CPoint point)
+{
+	CView::OnMButtonUp(nFlags, point);
+	if (GetCapture() == this) ReleaseCapture();
+
+	myDragMode = DragMode::None;
+}
+
+void CMyCadViewerView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	CView::OnMouseMove(nFlags, point);
+	if (myView.IsNull()) return;
+
+	if (myDragMode == DragMode::Rotate && myRotating)
+	{
+		myView->Rotation(point.x, point.y);
+		myView->Redraw();
+	}
+	else if (myDragMode == DragMode::Pan)
+	{
+		const int dx = point.x - myLastPt.x;
+		const int dy = point.y - myLastPt.y;
+
+		myView->Pan(dx, -dy);
+		myView->Redraw();
+
+		myLastPt = point;
+	}
+}
+
+BOOL CMyCadViewerView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	if (myView.IsNull()) return CView::OnMouseWheel(nFlags, zDelta, pt);
+
+	ScreenToClient(&pt);
+
+	const Standard_Real factor = (zDelta > 0) ? 0.9 : 1.1;
+
+	const int x = pt.x, y = pt.y;
+	myView->Zoom(x, y, (int)(x + 100 * factor), (int)(y + 100 * factor));
+	myView->Redraw();
+
+	return TRUE;
 }

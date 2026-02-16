@@ -56,6 +56,12 @@ protected:
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	afx_msg void OnPaint();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnMButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -67,6 +73,11 @@ private:
 	Handle(WNT_Window)              myWntWindow;
 
 	bool myInited = false;
+
+	enum class DragMode { None, Rotate, Pan };
+	DragMode myDragMode = DragMode::None;
+	CPoint   myLastPt{};
+	bool     myRotating = false;
 };
 
 #ifndef _DEBUG  // MyCadViewerView.cpp의 디버그 버전
