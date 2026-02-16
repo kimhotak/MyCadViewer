@@ -4,6 +4,17 @@
 
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#include <Standard_Handle.hxx>
+#include <AIS_InteractiveContext.hxx>
+#include <V3d_Viewer.hxx>
+#include <V3d_View.hxx>
+#include <OpenGl_GraphicDriver.hxx>
+#include <Aspect_DisplayConnection.hxx>
+#include <WNT_Window.hxx>
+#pragma warning(pop)
+
 
 class CMyCadViewerView : public CView
 {
@@ -43,6 +54,16 @@ protected:
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	DECLARE_MESSAGE_MAP()
+
+private:
+	Handle(Aspect_DisplayConnection) myDisplay;
+	Handle(OpenGl_GraphicDriver)     myDriver;
+	Handle(V3d_Viewer)              myViewer;
+	Handle(V3d_View)                myView;
+	Handle(AIS_InteractiveContext)  myContext;
+	Handle(WNT_Window)              myWntWindow;
+
+	bool myInited = false;
 };
 
 #ifndef _DEBUG  // MyCadViewerView.cpp의 디버그 버전
