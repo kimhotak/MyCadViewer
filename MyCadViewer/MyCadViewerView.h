@@ -50,9 +50,12 @@ protected:
 
 // 생성된 메시지 맵 함수
 protected:
+	virtual void OnInitialUpdate();
 	afx_msg void OnFilePrintPreview();
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	afx_msg void OnPaint();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	DECLARE_MESSAGE_MAP()
 
 private:

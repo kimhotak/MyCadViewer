@@ -13,6 +13,13 @@
 #include "MyCadViewerDoc.h"
 #include "MyCadViewerView.h"
 
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#include <Quantity_Color.hxx>
+#include <Aspect_TypeOfTriedronPosition.hxx>
+#include <V3d_TypeOfVisualization.hxx>
+#pragma warning(pop)
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -29,6 +36,8 @@ BEGIN_MESSAGE_MAP(CMyCadViewerView, CView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CMyCadViewerView::OnFilePrintPreview)
 	ON_WM_CONTEXTMENU()
 	ON_WM_RBUTTONUP()
+	ON_WM_PAINT()
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 // CMyCadViewerView 생성/소멸
@@ -49,6 +58,47 @@ BOOL CMyCadViewerView::PreCreateWindow(CREATESTRUCT& cs)
 	//  Window 클래스 또는 스타일을 수정합니다.
 
 	return CView::PreCreateWindow(cs);
+}
+
+// CMyCadViewerView 초기화
+
+void CMyCadViewerView::OnInitialUpdate()
+{
+	CView::OnInitialUpdate();
+
+	if (myInited)
+		return;
+
+	// 1) Display / Driver
+	myDisplay = new Aspect_DisplayConnection();
+	myDriver = new OpenGl_GraphicDriver(myDisplay);
+
+	// 2) Viewer / Context
+	myViewer = new V3d_Viewer(myDriver);
+	myViewer->SetDefaultLights();
+	myViewer->SetLightOn();
+
+	myContext = new AIS_InteractiveContext(myViewer);
+
+	// 3) View 생성
+	myView = myViewer->CreateView();
+
+	// 4) MFC View의 HWND를 OCCT Window로 래핑
+	myWntWindow = new WNT_Window(GetSafeHwnd());
+	myView->SetWindow(myWntWindow);
+	if (!myWntWindow->IsMapped())
+		myWntWindow->Map();
+
+	// 5) 기본 배경/리사이즈/좌표축(선택)
+	myView->SetBackgroundColor(Quantity_NOC_GRAY50);
+	myView->MustBeResized();
+
+	// 좌하단 좌표축(tryedron) 표시 - 화면이 제대로 붙었는지 확인용
+	myView->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_WHITE, 0.08, V3d_ZBUFFER);
+
+	myView->Redraw();
+
+	myInited = true;
 }
 
 // CMyCadViewerView 그리기
@@ -126,3 +176,22 @@ CMyCadViewerDoc* CMyCadViewerView::GetDocument() const // 디버그되지 않은
 
 
 // CMyCadViewerView 메시지 처리기
+
+void CMyCadViewerView::OnPaint()
+{
+	CPaintDC dc(this);
+
+	if (!myView.IsNull())
+		myView->Redraw();
+}
+
+void CMyCadViewerView::OnSize(UINT nType, int cx, int cy)
+{
+	CView::OnSize(nType, cx, cy);
+
+	if (!myView.IsNull())
+	{
+		myView->MustBeResized();
+		myView->Redraw();
+	}
+}
