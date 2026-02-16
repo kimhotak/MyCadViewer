@@ -4,7 +4,7 @@ MyCadViewer는 MFC + OpenCascade(OCCT) 기반의 Windows CAD STEP 뷰어 샘플 
 
 ## 개발 환경
 
-- Visual Studio 2022 (VC++ toolset)
+- Visual Studio 2026 (VC++ toolset)
 - Windows 64-bit
 - OpenCascade 7.9.3 (Debug 포함 패키지)
 
