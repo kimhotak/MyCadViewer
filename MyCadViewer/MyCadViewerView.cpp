@@ -456,20 +456,19 @@ void CMyCadViewerView::LoadStlFile(const CString& filePath)
 		return;
 	}
 
-	TopoDS_Shape shape;
-	BRep_Builder builder;
-	if (!RWStl::ReadFile(CT2A(filePath), builder, shape))
+	TopoDS_Shape shape = RWStl::ReadFile(CT2A(filePath));
+	if (shape.IsNull())
 	{
 		AfxMessageBox(_T("Failed to read STL file"));
 		return;
 	}
 
-	if (shape.IsNull())
-	{
-		AfxMessageBox(_T("No valid mesh data found in STL file"));
-		return;
-	}
 
+	
+	
+	
+	
+	
 	myContext->RemoveAll(Standard_False);
 
 	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
