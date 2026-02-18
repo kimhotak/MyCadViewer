@@ -51,6 +51,12 @@ BEGIN_MESSAGE_MAP(CMyCadViewerView, CView)
 	ON_COMMAND(ID_FILE_OPEN, &CMyCadViewerView::OnFileOpen)
 	ON_COMMAND(ID_VIEW_WIREFRAME, &CMyCadViewerView::OnViewWireframe)
 	ON_COMMAND(ID_VIEW_SHADED, &CMyCadViewerView::OnViewShaded)
+	ON_COMMAND(ID_VIEW_TOP, &CMyCadViewerView::OnViewTop)
+	ON_COMMAND(ID_VIEW_BOTTOM, &CMyCadViewerView::OnViewBottom)
+	ON_COMMAND(ID_VIEW_FRONT, &CMyCadViewerView::OnViewFront)
+	ON_COMMAND(ID_VIEW_BACK, &CMyCadViewerView::OnViewBack)
+	ON_COMMAND(ID_VIEW_RIGHT, &CMyCadViewerView::OnViewRight)
+	ON_COMMAND(ID_VIEW_LEFT, &CMyCadViewerView::OnViewLeft)
 	ON_COMMAND(ID_MEASURE_DISTANCE, &CMyCadViewerView::OnMeasureDistance)
 	ON_COMMAND(ID_MEASURE_CLEAR, &CMyCadViewerView::OnMeasureClear)
 END_MESSAGE_MAP()
@@ -450,6 +456,47 @@ void CMyCadViewerView::OnViewShaded()
 
 	myContext->SetDisplayMode(AIS_Shaded, Standard_True);
 	myView->Redraw();
+}
+
+void CMyCadViewerView::ApplyStandardView(V3d_TypeOfOrientation theOrientation)
+{
+	if (myView.IsNull())
+		return;
+
+	myView->SetProj(theOrientation);
+	myView->FitAll();
+	myView->ZFitAll();
+	myView->Redraw();
+}
+
+void CMyCadViewerView::OnViewTop()
+{
+	ApplyStandardView(V3d_Zpos);
+}
+
+void CMyCadViewerView::OnViewBottom()
+{
+	ApplyStandardView(V3d_Zneg);
+}
+
+void CMyCadViewerView::OnViewFront()
+{
+	ApplyStandardView(V3d_Yneg);
+}
+
+void CMyCadViewerView::OnViewBack()
+{
+	ApplyStandardView(V3d_Ypos);
+}
+
+void CMyCadViewerView::OnViewRight()
+{
+	ApplyStandardView(V3d_Xpos);
+}
+
+void CMyCadViewerView::OnViewLeft()
+{
+	ApplyStandardView(V3d_Xneg);
 }
 
 void CMyCadViewerView::OnMeasureDistance()

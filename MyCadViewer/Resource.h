@@ -88,6 +88,12 @@
 #define ID_VIEW_SHADED				308
 #define ID_MEASURE_DISTANCE			309
 #define ID_MEASURE_CLEAR			310
+#define ID_VIEW_TOP				311
+#define ID_VIEW_BOTTOM				312
+#define ID_VIEW_FRONT				313
+#define ID_VIEW_BACK				314
+#define ID_VIEW_RIGHT				315
+#define ID_VIEW_LEFT				316
 
 // 다음은 새 개체에 사용할 기본값입니다.
 //
@@ -95,7 +101,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE	310
 #define _APS_NEXT_CONTROL_VALUE		1000
-#define _APS_NEXT_SYMED_VALUE		310
-#define _APS_NEXT_COMMAND_VALUE		32771
+#define _APS_NEXT_SYMED_VALUE		317
+#define _APS_NEXT_COMMAND_VALUE		32772
 #endif
 #endif

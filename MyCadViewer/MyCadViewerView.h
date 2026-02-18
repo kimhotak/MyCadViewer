@@ -77,6 +77,12 @@ protected:
 	afx_msg void OnFileOpen();
 	afx_msg void OnViewWireframe();
 	afx_msg void OnViewShaded();
+	afx_msg void OnViewTop();
+	afx_msg void OnViewBottom();
+	afx_msg void OnViewFront();
+	afx_msg void OnViewBack();
+	afx_msg void OnViewRight();
+	afx_msg void OnViewLeft();
 	afx_msg void OnMeasureDistance();
 	afx_msg void OnMeasureClear();
 	DECLARE_MESSAGE_MAP()
@@ -101,10 +107,11 @@ private:
 	gp_Pnt   myFirstPoint;
 	bool     myFirstPointSelected = false;
 	NCollection_List<Handle(PrsDim_LengthDimension)> myDimensions;
+
+	void ApplyStandardView(V3d_TypeOfOrientation theOrientation);
 };
 
 #ifndef _DEBUG  // MyCadViewerView.cpp의 디버그 버전
 inline CMyCadViewerDoc* CMyCadViewerView::GetDocument() const
    { return reinterpret_cast<CMyCadViewerDoc*>(m_pDocument); }
 #endif
-
