@@ -37,6 +37,7 @@ public:
 
 // 작업입니다.
 public:
+	void LoadCadFile(const CString& filePath);
 	void LoadStepFile(const CString& filePath);
 	void LoadStlFile(const CString& filePath);
 	void FitAll();
