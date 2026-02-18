@@ -15,6 +15,8 @@
 #include "MyCadViewerDoc.h"
 #include "MyCadViewerView.h"
 
+#include "MeshIni.h"
+
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #include <Quantity_Color.hxx>
@@ -24,7 +26,7 @@
 #include <Geom_Plane.hxx>
 #include <gp_Pln.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
-#include <RWStl.hxx>
+#include <StlAPI_Reader.hxx>
 #include <TopoDS_Edge.hxx>
 #include <BRep_Builder.hxx>
 #pragma warning(pop)
@@ -32,6 +34,11 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+namespace
+{
+	constexpr double kPi = 3.1415926535897932384626433832795;
+}
 
 
 // CMyCadViewerView
@@ -397,86 +404,93 @@ void CMyCadViewerView::OnFileOpen()
 
 	if (dlg.DoModal() == IDOK)
 	{
-		CString filePath = dlg.GetPathName();
-		CString extension = dlg.GetFileExt();
-		extension.MakeLower();
+		LoadCadFile(dlg.GetPathName());
+	}
+}
 
-		if (extension == _T("stl"))
+void CMyCadViewerView::LoadCadFile(const CString& filePath)
+{
+	if (myContext.IsNull())
+	{
+		AfxMessageBox(_T("OCCT context not initialized"));
+		return;
+	}
+
+	CString extension = filePath.Mid(filePath.ReverseFind(_T('.')) + 1);
+	extension.MakeLower();
+
+	TopoDS_Shape shape;
+	if (extension == _T("stl"))
+	{
+		StlAPI_Reader reader;
+		reader.Read(shape, CT2A(filePath));
+		if (shape.IsNull())
 		{
-			LoadStlFile(filePath);
-		}
-		else if (extension == _T("step") || extension == _T("stp"))
-		{
-			LoadStepFile(filePath);
-		}
-		else
-		{
-			AfxMessageBox(_T("Unsupported file type. Please select STEP or STL."));
+			AfxMessageBox(_T("Failed to read STL file"));
+			return;
 		}
 	}
+	else if (extension == _T("step") || extension == _T("stp"))
+	{
+		STEPControl_Reader reader;
+		IFSelect_ReturnStatus status = reader.ReadFile(CT2A(filePath));
+		if (status != IFSelect_RetDone)
+		{
+			AfxMessageBox(_T("Failed to read STEP file"));
+			return;
+		}
+
+		Standard_Integer nbRoots = reader.TransferRoots();
+		if (nbRoots == 0)
+		{
+			AfxMessageBox(_T("No shapes found in STEP file"));
+			return;
+		}
+
+		shape = reader.OneShape();
+	}
+	else
+	{
+		AfxMessageBox(_T("Unsupported file type. Please select STEP or STL."));
+		return;
+	}
+
+	myContext->RemoveAll(Standard_False);
+	myOriginalShape = shape;
+
+	// Viewer용(빠른) 메쉬 파라미터를 INI에서 읽어서 적용 (없으면 기본값을 기록)
+	{
+		MeshParams viewerDefaults{};
+		viewerDefaults.deflection = 0.2;
+		viewerDefaults.angleRad = 28.0 * (kPi / 180.0);
+		viewerDefaults.relative = true;
+		viewerDefaults.parallel = true;
+		viewerDefaults.minSize = 0.0;
+		viewerDefaults.cleanBeforeMesh = false;
+
+		MeshParams viewerParams = LoadMeshParamsFromIni(_T("ViewerMesh"), viewerDefaults);
+		ApplyMeshToShape(shape, viewerParams);
+	}
+
+	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
+	myContext->Display(aisShape, Standard_True);
+
+	FitAll();
+}
+
+const TopoDS_Shape* CMyCadViewerView::GetOriginalShapeForExport() const
+{
+	return myOriginalShape.IsNull() ? nullptr : &myOriginalShape;
 }
 
 void CMyCadViewerView::LoadStepFile(const CString& filePath)
 {
-	if (myContext.IsNull())
-	{
-		AfxMessageBox(_T("OCCT context not initialized"));
-		return;
-	}
-
-	STEPControl_Reader reader;
-	IFSelect_ReturnStatus status = reader.ReadFile(CT2A(filePath));
-
-	if (status != IFSelect_RetDone)
-	{
-		AfxMessageBox(_T("Failed to read STEP file"));
-		return;
-	}
-
-	Standard_Integer nbRoots = reader.TransferRoots();
-	if (nbRoots == 0)
-	{
-		AfxMessageBox(_T("No shapes found in STEP file"));
-		return;
-	}
-
-	TopoDS_Shape shape = reader.OneShape();
-
-	myContext->RemoveAll(Standard_False);
-
-	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
-	myContext->Display(aisShape, Standard_True);
-
-	FitAll();
+	LoadCadFile(filePath);
 }
 
 void CMyCadViewerView::LoadStlFile(const CString& filePath)
 {
-	if (myContext.IsNull())
-	{
-		AfxMessageBox(_T("OCCT context not initialized"));
-		return;
-	}
-
-	TopoDS_Shape shape = RWStl::ReadFile(CT2A(filePath));
-	if (shape.IsNull())
-	{
-		AfxMessageBox(_T("Failed to read STL file"));
-		return;
-	}
-
-
-	
-	
-	
-	
-	
-	myContext->RemoveAll(Standard_False);
-
-	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
-	myContext->Display(aisShape, Standard_True);
-
-	FitAll();
+	LoadCadFile(filePath);
 }
 
 void CMyCadViewerView::FitAll()

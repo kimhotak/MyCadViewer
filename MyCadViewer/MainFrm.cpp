@@ -8,6 +8,9 @@
 
 #include "MainFrm.h"
 
+#include "MyCadViewerView.h"
+#include "MeshIni.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -23,6 +26,7 @@ const UINT uiLastUserToolBarId = uiFirstUserToolBarId + iMaxUserToolbars - 1;
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWndEx)
 	ON_WM_CREATE()
 	ON_COMMAND(ID_VIEW_CUSTOMIZE, &CMainFrame::OnViewCustomize)
+	ON_COMMAND(ID_FILE_EXPORT_STL, &CMainFrame::OnFileExportStl)
 	ON_REGISTERED_MESSAGE(AFX_WM_CREATETOOLBAR, &CMainFrame::OnToolbarCreateNew)
 	ON_COMMAND_RANGE(ID_VIEW_APPLOOK_WIN_2000, ID_VIEW_APPLOOK_WINDOWS_7, &CMainFrame::OnApplicationLook)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_APPLOOK_WIN_2000, ID_VIEW_APPLOOK_WINDOWS_7, &CMainFrame::OnUpdateApplicationLook)
@@ -326,4 +330,38 @@ BOOL CMainFrame::LoadFrame(UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParent
 void CMainFrame::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 {
 	CFrameWndEx::OnSettingChange(uFlags, lpszSection);
+}
+
+void CMainFrame::OnFileExportStl()
+{
+	CView* pView = GetActiveView();
+	if (pView == nullptr)
+	{
+		AfxMessageBox(_T("활성 뷰가 없습니다."));
+		return;
+	}
+
+	CMyCadViewerView* pCadView = DYNAMIC_DOWNCAST(CMyCadViewerView, pView);
+	if (pCadView == nullptr)
+	{
+		AfxMessageBox(_T("CAD 뷰가 아닙니다."));
+		return;
+	}
+
+	const TopoDS_Shape* pShape = pCadView->GetOriginalShapeForExport();
+	if (pShape == nullptr || pShape->IsNull())
+	{
+		AfxMessageBox(_T("내보낼 모델이 없습니다."));
+		return;
+	}
+
+	CFileDialog dlg(FALSE, _T("stl"), nullptr,
+		OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+		_T("STL Files (*.stl)|*.stl|All Files (*.*)|*.*||"), this);
+	if (dlg.DoModal() != IDOK)
+		return;
+
+	StlExportParams p = LoadStlExportParamsFromIni();
+	const bool ok = ExportStlWithIniParams(*pShape, dlg.GetPathName(), p);
+	AfxMessageBox(ok ? _T("STL 내보내기 성공") : _T("STL 내보내기 실패"));
 }
