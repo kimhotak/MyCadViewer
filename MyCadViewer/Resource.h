@@ -89,10 +89,10 @@
 #define ID_MEASURE_DISTANCE			309
 #define ID_MEASURE_CLEAR			310
 #define ID_VIEW_TOP				311
-#define ID_VIEW_BOTTOM			312
-#define ID_VIEW_FRONT			313
+#define ID_VIEW_BOTTOM				312
+#define ID_VIEW_FRONT				313
 #define ID_VIEW_BACK				314
-#define ID_VIEW_RIGHT			315
+#define ID_VIEW_RIGHT				315
 #define ID_VIEW_LEFT				316
 
 // 다음은 새 개체에 사용할 기본값입니다.
