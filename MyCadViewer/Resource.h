@@ -94,6 +94,7 @@
 #define ID_VIEW_BACK				314
 #define ID_VIEW_RIGHT				315
 #define ID_VIEW_LEFT				316
+#define ID_VIEW_ISO					317
 
 // 다음은 새 개체에 사용할 기본값입니다.
 //

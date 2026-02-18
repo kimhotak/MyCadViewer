@@ -10,6 +10,8 @@
 #include "MyCadViewer.h"
 #endif
 
+#include "resource.h"
+
 #include "MyCadViewerDoc.h"
 #include "MyCadViewerView.h"
 
@@ -57,6 +59,7 @@ BEGIN_MESSAGE_MAP(CMyCadViewerView, CView)
 	ON_COMMAND(ID_VIEW_BACK, &CMyCadViewerView::OnViewBack)
 	ON_COMMAND(ID_VIEW_RIGHT, &CMyCadViewerView::OnViewRight)
 	ON_COMMAND(ID_VIEW_LEFT, &CMyCadViewerView::OnViewLeft)
+	ON_COMMAND(ID_VIEW_ISO, &CMyCadViewerView::OnViewISO)
 	ON_COMMAND(ID_MEASURE_DISTANCE, &CMyCadViewerView::OnMeasureDistance)
 	ON_COMMAND(ID_MEASURE_CLEAR, &CMyCadViewerView::OnMeasureClear)
 END_MESSAGE_MAP()
@@ -497,6 +500,11 @@ void CMyCadViewerView::OnViewRight()
 void CMyCadViewerView::OnViewLeft()
 {
 	ApplyStandardView(V3d_Xneg);
+}
+
+void CMyCadViewerView::OnViewISO()
+{
+	ApplyStandardView(V3d_XposYposZpos);
 }
 
 void CMyCadViewerView::OnMeasureDistance()
