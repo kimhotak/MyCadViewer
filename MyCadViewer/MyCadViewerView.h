@@ -84,6 +84,7 @@ protected:
 	afx_msg void OnViewBack();
 	afx_msg void OnViewRight();
 	afx_msg void OnViewLeft();
+	afx_msg void OnViewISO();
 	afx_msg void OnMeasureDistance();
 	afx_msg void OnMeasureClear();
 	DECLARE_MESSAGE_MAP()
