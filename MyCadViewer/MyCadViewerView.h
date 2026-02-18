@@ -38,6 +38,7 @@ public:
 // 작업입니다.
 public:
 	void LoadStepFile(const CString& filePath);
+	void LoadStlFile(const CString& filePath);
 	void FitAll();
 	void StartMeasureDistance();
 

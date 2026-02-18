@@ -18,10 +18,13 @@
 #include <Quantity_Color.hxx>
 #include <Aspect_TypeOfTriedronPosition.hxx>
 #include <V3d_TypeOfVisualization.hxx>
+#include <IFSelect_ReturnStatus.hxx>
 #include <Geom_Plane.hxx>
 #include <gp_Pln.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <RWStl.hxx>
 #include <TopoDS_Edge.hxx>
+#include <BRep_Builder.hxx>
 #pragma warning(pop)
 
 #ifdef _DEBUG
@@ -387,12 +390,26 @@ void CMyCadViewerView::OnFileOpen()
 {
 	CFileDialog dlg(TRUE, _T("step"), NULL,
 		OFN_HIDEREADONLY | OFN_FILEMUSTEXIST,
-		_T("STEP Files (*.step;*.stp)|*.step;*.stp|All Files (*.*)|*.*||"));
+		_T("CAD Files (*.step;*.stp;*.stl)|*.step;*.stp;*.stl|STEP Files (*.step;*.stp)|*.step;*.stp|STL Files (*.stl)|*.stl|All Files (*.*)|*.*||"));
 
 	if (dlg.DoModal() == IDOK)
 	{
 		CString filePath = dlg.GetPathName();
-		LoadStepFile(filePath);
+		CString extension = dlg.GetFileExt();
+		extension.MakeLower();
+
+		if (extension == _T("stl"))
+		{
+			LoadStlFile(filePath);
+		}
+		else if (extension == _T("step") || extension == _T("stp"))
+		{
+			LoadStepFile(filePath);
+		}
+		else
+		{
+			AfxMessageBox(_T("Unsupported file type. Please select STEP or STL."));
+		}
 	}
 }
 
@@ -422,6 +439,35 @@ void CMyCadViewerView::LoadStepFile(const CString& filePath)
 
 	TopoDS_Shape shape = reader.OneShape();
 
+	myContext->RemoveAll(Standard_False);
+
+	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
+	myContext->Display(aisShape, Standard_True);
+
+	FitAll();
+}
+
+void CMyCadViewerView::LoadStlFile(const CString& filePath)
+{
+	if (myContext.IsNull())
+	{
+		AfxMessageBox(_T("OCCT context not initialized"));
+		return;
+	}
+
+	TopoDS_Shape shape = RWStl::ReadFile(CT2A(filePath));
+	if (shape.IsNull())
+	{
+		AfxMessageBox(_T("Failed to read STL file"));
+		return;
+	}
+
+
+	
+	
+	
+	
+	
 	myContext->RemoveAll(Standard_False);
 
 	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
