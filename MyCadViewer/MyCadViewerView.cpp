@@ -26,7 +26,6 @@
 #include <Geom_Plane.hxx>
 #include <gp_Pln.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
-#include <RWStl.hxx>
 #include <StlAPI_Reader.hxx>
 #include <TopoDS_Edge.hxx>
 #include <BRep_Builder.hxx>
