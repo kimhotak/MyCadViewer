@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "MyCadViewerDoc.h"
+
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #include <Standard_Handle.hxx>
@@ -42,6 +44,7 @@ public:
 	void LoadStlFile(const CString& filePath);
 	void FitAll();
 	void StartMeasureDistance();
+	const TopoDS_Shape* GetOriginalShapeForExport() const;
 
 // 재정의입니다.
 public:
@@ -110,6 +113,8 @@ private:
 	gp_Pnt   myFirstPoint;
 	bool     myFirstPointSelected = false;
 	NCollection_List<Handle(PrsDim_LengthDimension)> myDimensions;
+
+	TopoDS_Shape myOriginalShape;
 
 	void ApplyStandardView(V3d_TypeOfOrientation theOrientation);
 };

@@ -15,6 +15,8 @@
 #include "MyCadViewerDoc.h"
 #include "MyCadViewerView.h"
 
+#include "MeshIni.h"
+
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #include <Quantity_Color.hxx>
@@ -33,6 +35,11 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+namespace
+{
+	constexpr double kPi = 3.1415926535897932384626433832795;
+}
 
 
 // CMyCadViewerView
@@ -450,10 +457,31 @@ void CMyCadViewerView::LoadCadFile(const CString& filePath)
 	}
 
 	myContext->RemoveAll(Standard_False);
+	myOriginalShape = shape;
+
+	// Viewer용(빠른) 메쉬 파라미터를 INI에서 읽어서 적용 (없으면 기본값을 기록)
+	{
+		MeshParams viewerDefaults{};
+		viewerDefaults.deflection = 0.2;
+		viewerDefaults.angleRad = 28.0 * (kPi / 180.0);
+		viewerDefaults.relative = true;
+		viewerDefaults.parallel = true;
+		viewerDefaults.minSize = 0.0;
+		viewerDefaults.cleanBeforeMesh = false;
+
+		MeshParams viewerParams = LoadMeshParamsFromIni(_T("ViewerMesh"), viewerDefaults);
+		ApplyMeshToShape(shape, viewerParams);
+	}
+
 	Handle(AIS_Shape) aisShape = new AIS_Shape(shape);
 	myContext->Display(aisShape, Standard_True);
 
 	FitAll();
+}
+
+const TopoDS_Shape* CMyCadViewerView::GetOriginalShapeForExport() const
+{
+	return myOriginalShape.IsNull() ? nullptr : &myOriginalShape;
 }
 
 void CMyCadViewerView::LoadStepFile(const CString& filePath)
