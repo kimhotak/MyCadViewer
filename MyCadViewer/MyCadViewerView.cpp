@@ -25,7 +25,6 @@
 #include <RWStl.hxx>
 #include <TopoDS_Edge.hxx>
 #include <BRep_Builder.hxx>
-#include <TopoDS_Face.hxx>
 #pragma warning(pop)
 
 #ifdef _DEBUG
