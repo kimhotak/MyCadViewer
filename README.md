@@ -21,6 +21,7 @@ MyCadViewer는 MFC + OpenCascade(OCCT) 기반의 Windows CAD STEP 뷰어 샘플 
 
 - `OCCT_ROOT=C:\libs`  
   (이 경우 OCCT는 `C:\libs\opencascade-7.9.3-vc14-64-with-debug-combined\...` 에 위치해야 합니다.)
+
 ## 빌드
 
 1. Visual Studio에서 솔루션(`MyCadViewer.slnx`)을 엽니다.
@@ -34,4 +35,17 @@ MyCadViewer는 MFC + OpenCascade(OCCT) 기반의 Windows CAD STEP 뷰어 샘플 
 - STEP 파일 열기
 - 기본 뷰 조작(회전/이동/줌)
 - Wireframe / Shaded 전환
-- 2점 거리 측정 표시
+
+## 화면 예시
+
+### STEP 파일 - Wireframe
+
+![MyCadViewer STEP wireframe view](docs/images/view-wireframe.svg)
+
+### STEP 파일 - Shaded
+
+![MyCadViewer STEP shaded view](docs/images/view-shaded.svg)
+
+### STL 파일 - Wireframe (Mesh 와이어 표시)
+
+![MyCadViewer STL wireframe mesh view](docs/images/view-mesh.svg)
