@@ -32,20 +32,62 @@ MyCadViewer는 MFC + OpenCascade(OCCT) 기반의 Windows CAD STEP 뷰어 샘플 
 
 ## 현재 기능
 
-- STEP 파일 열기
+- STEP / STL 파일 열기
 - 기본 뷰 조작(회전/이동/줌)
 - Wireframe / Shaded 전환
+- STEP 파일을 STL로 내보내기(Export) 지원
+   - `CadViewer.ini`로 메쉬 정밀도(Deflection/Angle 등)와 바이너리/ASCII를 세분화 설정 가능
+
+## INI 설정 (CadViewer.ini)
+
+실행 파일(`MyCadViewer.exe`)과 같은 폴더에 `CadViewer.ini`가 있으며, 항목이 없으면 **기본값을 자동으로 기록**합니다.
+
+### ViewerMesh (화면 표시용 빠른 메쉬)
+
+STEP/STL 로드 후 화면 표시 속도/품질 밸런스를 위해 사용하는 메쉬 파라미터입니다.
+
+```ini
+[ViewerMesh]
+Deflection=0.2
+AngleDeg=28
+Relative=1
+Parallel=1
+MinSize=0
+CleanBeforeMesh=0
+```
+
+### StlExport (STL 내보내기 정밀도)
+
+메뉴 **파일(F) → STL로 내보내기(E)...** 실행 시 아래 설정을 읽어 STL을 생성합니다.
+(즉, STEP로 로드한 형상을 STL로 내보낼 때도 이 정밀도 설정이 그대로 적용됩니다.)
+
+```ini
+[StlExport]
+Deflection=0.01
+AngleDeg=12
+Relative=1
+Parallel=1
+MinSize=0
+CleanBeforeMesh=1
+Binary=1
+```
+
+#### 주요 파라미터 의미
+
+- `Deflection`: 값이 작을수록 더 촘촘한 삼각형 메쉬(정밀도↑ / 용량↑ / 시간↑)
+- `AngleDeg`: 값이 작을수록 곡면을 더 잘 따라가도록 분할(정밀도↑ / 용량↑)
+- `Binary`: `1`이면 Binary STL, `0`이면 ASCII STL
 
 ## 화면 예시
 
 ### STEP 파일 - Wireframe
 
-![MyCadViewer STEP wireframe view](docs/images/view-wireframe.svg)
+![MyCadViewer STEP wireframe view](docs/images/view-wireframe.png)
 
 ### STEP 파일 - Shaded
 
-![MyCadViewer STEP shaded view](docs/images/view-shaded.svg)
+![MyCadViewer STEP shaded view](docs/images/view-shaded.png)
 
 ### STL 파일 - Wireframe (Mesh 와이어 표시)
 
-![MyCadViewer STL wireframe mesh view](docs/images/view-mesh.svg)
+![MyCadViewer STL wireframe mesh view](docs/images/view-mesh.png)
