@@ -14,6 +14,7 @@
 
 #include "MyCadViewerDoc.h"
 #include "MyCadViewerView.h"
+#include "MeasurementService.h"
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
@@ -23,10 +24,10 @@
 #include <IFSelect_ReturnStatus.hxx>
 #include <Geom_Plane.hxx>
 #include <gp_Pln.hxx>
-#include <BRepBuilderAPI_MakeEdge.hxx>
 #include <RWStl.hxx>
-#include <TopoDS_Edge.hxx>
-#include <BRep_Builder.hxx>
+#include <TopoDS.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
 #pragma warning(pop)
 
 #ifdef _DEBUG
@@ -231,67 +232,52 @@ void CMyCadViewerView::OnLButtonDown(UINT nFlags, CPoint point)
 	// 측정 모드일 때
 	if (myMeasureMode)
 	{
-		// 3D 공간의 점 선택
 		myContext->MoveTo(point.x, point.y, myView, Standard_True);
 
-		// 화면 좌표를 3D 좌표로 변환
-		Standard_Real Xv, Yv, Zv;
-		Standard_Real Xp, Yp, Zp;
-		myView->Convert(point.x, point.y, Xp, Yp, Zp);
-		myView->Eye(Xv, Yv, Zv);
-
-		gp_Pnt eyePnt(Xv, Yv, Zv);
-		gp_Pnt projPnt(Xp, Yp, Zp);
-		gp_Dir dir(gp_Vec(eyePnt, projPnt));
-
-		// 3D 공간에서 객체와의 교차점 찾기
-		Standard_Real depth = 100.0;
-		gp_Pnt point3D = eyePnt.Translated(gp_Vec(dir) * depth);
-
-		if (!myFirstPointSelected)
+		MeasureSelection selection;
+		CString typeName;
+		if (!::BuildMeasureSelectionFromDetected(myContext, selection, typeName))
 		{
-			// 첫 번째 점 선택
-			myFirstPoint = point3D;
-			myFirstPointSelected = true;
+			AfxMessageBox(_T("측정할 요소를 클릭하세요. (점/에지/면/축/평면)"));
+			return;
+		}
 
-			// 첫 번째 점 표시
-			TopoDS_Vertex v1 = BRepBuilderAPI_MakeVertex(myFirstPoint);
-			Handle(AIS_Shape) pointShape = new AIS_Shape(v1);
-			pointShape->SetColor(Quantity_NOC_RED);
-			pointShape->SetWidth(5.0);
-			myContext->Display(pointShape, Standard_True);
+		if (!myFirstSelectionValid)
+		{
+			myFirstSelection = selection;
+			myFirstSelectionValid = true;
 
-			AfxMessageBox(_T("첫 번째 점이 선택되었습니다. 두 번째 점을 선택하세요."));
+			CString msg;
+			msg.Format(_T("첫 번째 요소 선택: %s\n두 번째 요소를 선택하세요."), typeName.GetString());
+			AfxMessageBox(msg);
 		}
 		else
 		{
-			// 두 번째 점 선택 - 치수 생성
-			gp_Pnt secondPoint = point3D;
+			if (myFirstSelection.distanceShape.IsNull() || selection.distanceShape.IsNull())
+			{
+				AfxMessageBox(_T("거리 계산에 사용할 형상 정보가 없습니다."));
+				myFirstSelectionValid = false;
+				return;
+			}
 
-			// 두 점을 잇는 엣지 생성
-			TopoDS_Vertex v1 = BRepBuilderAPI_MakeVertex(myFirstPoint);
-			TopoDS_Vertex v2 = BRepBuilderAPI_MakeVertex(secondPoint);
-			TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(myFirstPoint, secondPoint);
+			BRepExtrema_DistShapeShape distTool(myFirstSelection.distanceShape, selection.distanceShape);
+			distTool.Perform();
 
-			// 점 표시
-			Handle(AIS_Shape) pointShape1 = new AIS_Shape(v1);
-			pointShape1->SetColor(Quantity_NOC_RED);
-			pointShape1->SetWidth(5.0);
-			myContext->Display(pointShape1, Standard_True);
+			if (!distTool.IsDone() || distTool.NbSolution() < 1)
+			{
+				AfxMessageBox(_T("요소 간 거리 계산에 실패했습니다."));
+				myFirstSelectionValid = false;
+				return;
+			}
 
-			Handle(AIS_Shape) pointShape2 = new AIS_Shape(v2);
-			pointShape2->SetColor(Quantity_NOC_RED);
-			pointShape2->SetWidth(5.0);
-			myContext->Display(pointShape2, Standard_True);
+			const Standard_Real minDistance = distTool.Value();
+			const gp_Pnt pointOnFirst = distTool.PointOnShape1(1);
+			const gp_Pnt pointOnSecond = distTool.PointOnShape2(1);
 
-			// 거리 치수 생성
 			Handle(PrsDim_LengthDimension) lengthDim = new PrsDim_LengthDimension();
+			gp_Pln plane(pointOnFirst, gp::DZ());
+			lengthDim->SetMeasuredGeometry(pointOnFirst, pointOnSecond, plane);
 
-			// 평면 설정
-			gp_Pln plane(myFirstPoint, gp::DZ());
-			lengthDim->SetMeasuredGeometry(myFirstPoint, secondPoint, plane);
-
-			// 치수 스타일 설정
 			Handle(Prs3d_DimensionAspect) dimAspect = new Prs3d_DimensionAspect();
 			dimAspect->MakeArrows3d(Standard_False);
 			dimAspect->MakeText3d(Standard_True);
@@ -303,14 +289,12 @@ void CMyCadViewerView::OnLButtonDown(UINT nFlags, CPoint point)
 			myDimensions.Append(lengthDim);
 			myContext->Display(lengthDim, Standard_True);
 
-			// 거리 계산 및 표시
-			Standard_Real distance = myFirstPoint.Distance(secondPoint);
-			CString msg;
-			msg.Format(_T("측정 거리: %.2f mm"), distance);
-			AfxMessageBox(msg);
+			Standard_Real angleDeg = 0.0;
+			const bool hasAngle = ::TryComputeAngleDegrees(myFirstSelection, selection, angleDeg);
+			CString report = ::FormatMeasureReport(myFirstSelection, selection, minDistance, pointOnFirst, pointOnSecond, hasAngle, angleDeg);
+			AfxMessageBox(report);
 
-			// 다음 측정을 위해 리셋
-			myFirstPointSelected = false;
+			myFirstSelectionValid = false;
 		}
 
 		myView->Redraw();
@@ -559,11 +543,11 @@ void CMyCadViewerView::OnMeasureDistance()
 		return;
 
 	myMeasureMode = !myMeasureMode;
-	myFirstPointSelected = false;
+	myFirstSelectionValid = false;
 
 	if (myMeasureMode)
 	{
-		AfxMessageBox(_T("측정 모드가 활성화되었습니다. 첫 번째 점을 클릭하세요.\n(회전/이동을 하려면 측정 모드를 다시 토글하세요)"));
+		AfxMessageBox(_T("측정 모드가 활성화되었습니다. 첫 번째 요소(점/에지/면/축/평면)를 클릭하세요.\n(회전/이동을 하려면 측정 모드를 다시 토글하세요)"));
 	}
 	else
 	{
@@ -584,7 +568,7 @@ void CMyCadViewerView::OnMeasureClear()
 	myDimensions.Clear();
 
 	myMeasureMode = false;
-	myFirstPointSelected = false;
+	myFirstSelectionValid = false;
 
 	myView->Redraw();
 	AfxMessageBox(_T("모든 측정 치수가 제거되었습니다."));
@@ -593,5 +577,5 @@ void CMyCadViewerView::OnMeasureClear()
 void CMyCadViewerView::StartMeasureDistance()
 {
 	myMeasureMode = true;
-	myFirstPointSelected = false;
+	myFirstSelectionValid = false;
 }

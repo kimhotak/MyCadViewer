@@ -190,6 +190,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="MeasurementService.h" />
     <ClInclude Include="MyCadViewer.h" />
     <ClInclude Include="MyCadViewerDoc.h" />
     <ClInclude Include="MyCadViewerView.h" />
@@ -200,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="MeasurementService.cpp" />
     <ClCompile Include="MyCadViewer.cpp" />
     <ClCompile Include="MyCadViewerDoc.cpp" />
     <ClCompile Include="MyCadViewerView.cpp" />

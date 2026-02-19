@@ -17,10 +17,8 @@
 #include <STEPControl_Reader.hxx>
 #include <TopoDS_Shape.hxx>
 #include <PrsDim_LengthDimension.hxx>
-#include <Geom_CartesianPoint.hxx>
-#include <gp_Pnt.hxx>
-#include <BRepBuilderAPI_MakeVertex.hxx>
-#include <TopoDS_Vertex.hxx>
+#include <TopoDS_Face.hxx>
+#include "MeasurementService.h"
 #include <NCollection_List.hxx>
 #pragma warning(pop)
 
@@ -104,10 +102,11 @@ private:
 	CPoint   myLastPt{};
 	bool     myRotating = false;
 
+
 	// 측정 관련 변수
 	bool     myMeasureMode = false;
-	gp_Pnt   myFirstPoint;
-	bool     myFirstPointSelected = false;
+	MeasureSelection myFirstSelection;
+	bool     myFirstSelectionValid = false;
 	NCollection_List<Handle(PrsDim_LengthDimension)> myDimensions;
 
 	void ApplyStandardView(V3d_TypeOfOrientation theOrientation);
