@@ -27,9 +27,9 @@
 
 namespace
 {
-	TCollection_AsciiString ToAsciiPath(const CString& path)
+	CStringA ToUtf8PathA(const CString& path)
 	{
-		return TCollection_AsciiString(CT2A(path));
+		return CStringA(CW2A(path, CP_UTF8));
 	}
 }
 
@@ -81,8 +81,9 @@ bool CMyCadViewerDoc::LoadCadFile(const CString& filePath, CString& outErrorMess
 	TopoDS_Shape shape;
 	if (extension == _T("stl"))
 	{
+		const CStringA filePathA = ToUtf8PathA(filePath);
 		StlAPI_Reader reader;
-		reader.Read(shape, ToAsciiPath(filePath));
+		reader.Read(shape, filePathA.GetString());
 		if (shape.IsNull())
 		{
 			outErrorMessage = _T("Failed to read STL file");
@@ -91,8 +92,9 @@ bool CMyCadViewerDoc::LoadCadFile(const CString& filePath, CString& outErrorMess
 	}
 	else if (extension == _T("step") || extension == _T("stp"))
 	{
+		const CStringA filePathA = ToUtf8PathA(filePath);
 		STEPControl_Reader reader;
-		IFSelect_ReturnStatus status = reader.ReadFile(ToAsciiPath(filePath));
+		IFSelect_ReturnStatus status = reader.ReadFile(filePathA.GetString());
 		if (status != IFSelect_RetDone)
 		{
 			outErrorMessage = _T("Failed to read STEP file");
