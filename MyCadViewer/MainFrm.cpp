@@ -9,6 +9,7 @@
 #include "MainFrm.h"
 
 #include "MyCadViewerView.h"
+#include "MyCadViewerDoc.h"
 #include "MeshIni.h"
 
 #ifdef _DEBUG
@@ -341,14 +342,15 @@ void CMainFrame::OnFileExportStl()
 		return;
 	}
 
-	CMyCadViewerView* pCadView = DYNAMIC_DOWNCAST(CMyCadViewerView, pView);
-	if (pCadView == nullptr)
+	CDocument* pBaseDoc = pView->GetDocument();
+	CMyCadViewerDoc* pDoc = DYNAMIC_DOWNCAST(CMyCadViewerDoc, pBaseDoc);
+	if (pDoc == nullptr)
 	{
-		AfxMessageBox(_T("CAD 뷰가 아닙니다."));
+		AfxMessageBox(_T("CAD 문서를 찾을 수 없습니다."));
 		return;
 	}
 
-	const TopoDS_Shape* pShape = pCadView->GetOriginalShapeForExport();
+	const TopoDS_Shape* pShape = pDoc->GetOriginalShape();
 	if (pShape == nullptr || pShape->IsNull())
 	{
 		AfxMessageBox(_T("내보낼 모델이 없습니다."));

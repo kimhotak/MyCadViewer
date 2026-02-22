@@ -42,9 +42,9 @@ public:
 	void LoadCadFile(const CString& filePath);
 	void LoadStepFile(const CString& filePath);
 	void LoadStlFile(const CString& filePath);
+	void DisplayDocumentShape();
 	void FitAll();
 	void StartMeasureDistance();
-	const TopoDS_Shape* GetOriginalShapeForExport() const;
 
 // 재정의입니다.
 public:
@@ -113,8 +113,6 @@ private:
 	gp_Pnt   myFirstPoint;
 	bool     myFirstPointSelected = false;
 	NCollection_List<Handle(PrsDim_LengthDimension)> myDimensions;
-
-	TopoDS_Shape myOriginalShape;
 
 	void ApplyStandardView(V3d_TypeOfOrientation theOrientation);
 };
