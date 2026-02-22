@@ -22,11 +22,9 @@
 #include <Quantity_Color.hxx>
 #include <Aspect_TypeOfTriedronPosition.hxx>
 #include <V3d_TypeOfVisualization.hxx>
-#include <IFSelect_ReturnStatus.hxx>
 #include <Geom_Plane.hxx>
 #include <gp_Pln.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
-#include <StlAPI_Reader.hxx>
 #include <TopoDS_Edge.hxx>
 #include <BRep_Builder.hxx>
 #pragma warning(pop)
@@ -34,12 +32,6 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
-namespace
-{
-	constexpr double kPi = 3.1415926535897932384626433832795;
-}
-
 
 // CMyCadViewerView
 
@@ -144,7 +136,8 @@ void CMyCadViewerView::OnDraw(CDC* /*pDC*/)
 	if (!pDoc)
 		return;
 
-	// TODO: 여기에 원시 데이터에 대한 그리기 코드를 추가합니다.
+	if (!myView.IsNull())
+		myView->Redraw();
 }
 
 
@@ -404,11 +397,44 @@ void CMyCadViewerView::OnFileOpen()
 
 	if (dlg.DoModal() == IDOK)
 	{
-		LoadCadFile(dlg.GetPathName());
+		CMyCadViewerDoc* pDoc = GetDocument();
+		if (pDoc == nullptr)
+		{
+			AfxMessageBox(_T("문서를 찾을 수 없습니다."));
+			return;
+		}
+
+		CString errorMessage;
+		if (!pDoc->LoadCadFile(dlg.GetPathName(), errorMessage))
+		{
+			AfxMessageBox(errorMessage);
+			return;
+		}
+
+		DisplayDocumentShape();
 	}
 }
 
 void CMyCadViewerView::LoadCadFile(const CString& filePath)
+{
+	CMyCadViewerDoc* pDoc = GetDocument();
+	if (pDoc == nullptr)
+	{
+		AfxMessageBox(_T("문서를 찾을 수 없습니다."));
+		return;
+	}
+
+	CString errorMessage;
+	if (!pDoc->LoadCadFile(filePath, errorMessage))
+	{
+		AfxMessageBox(errorMessage);
+		return;
+	}
+
+	DisplayDocumentShape();
+}
+
+void CMyCadViewerView::DisplayDocumentShape()
 {
 	if (myContext.IsNull())
 	{
@@ -416,53 +442,23 @@ void CMyCadViewerView::LoadCadFile(const CString& filePath)
 		return;
 	}
 
-	CString extension = filePath.Mid(filePath.ReverseFind(_T('.')) + 1);
-	extension.MakeLower();
-
-	TopoDS_Shape shape;
-	if (extension == _T("stl"))
-	{
-		StlAPI_Reader reader;
-		reader.Read(shape, CT2A(filePath));
-		if (shape.IsNull())
-		{
-			AfxMessageBox(_T("Failed to read STL file"));
-			return;
-		}
-	}
-	else if (extension == _T("step") || extension == _T("stp"))
-	{
-		STEPControl_Reader reader;
-		IFSelect_ReturnStatus status = reader.ReadFile(CT2A(filePath));
-		if (status != IFSelect_RetDone)
-		{
-			AfxMessageBox(_T("Failed to read STEP file"));
-			return;
-		}
-
-		Standard_Integer nbRoots = reader.TransferRoots();
-		if (nbRoots == 0)
-		{
-			AfxMessageBox(_T("No shapes found in STEP file"));
-			return;
-		}
-
-		shape = reader.OneShape();
-	}
-	else
-	{
-		AfxMessageBox(_T("Unsupported file type. Please select STEP or STL."));
+	CMyCadViewerDoc* pDoc = GetDocument();
+	if (pDoc == nullptr)
 		return;
-	}
+
+	const TopoDS_Shape* pShape = pDoc->GetOriginalShape();
+	if (pShape == nullptr || pShape->IsNull())
+		return;
+
+	TopoDS_Shape shape = *pShape;
 
 	myContext->RemoveAll(Standard_False);
-	myOriginalShape = shape;
 
 	// Viewer용(빠른) 메쉬 파라미터를 INI에서 읽어서 적용 (없으면 기본값을 기록)
 	{
 		MeshParams viewerDefaults{};
 		viewerDefaults.deflection = 0.2;
-		viewerDefaults.angleRad = 28.0 * (kPi / 180.0);
+		viewerDefaults.angleRad = 28.0 * (3.1415926535897932384626433832795 / 180.0);
 		viewerDefaults.relative = true;
 		viewerDefaults.parallel = true;
 		viewerDefaults.minSize = 0.0;
@@ -476,11 +472,6 @@ void CMyCadViewerView::LoadCadFile(const CString& filePath)
 	myContext->Display(aisShape, Standard_True);
 
 	FitAll();
-}
-
-const TopoDS_Shape* CMyCadViewerView::GetOriginalShapeForExport() const
-{
-	return myOriginalShape.IsNull() ? nullptr : &myOriginalShape;
 }
 
 void CMyCadViewerView::LoadStepFile(const CString& filePath)

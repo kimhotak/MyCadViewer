@@ -14,9 +14,24 @@
 
 #include <propkey.h>
 
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#include <IFSelect_ReturnStatus.hxx>
+#include <STEPControl_Reader.hxx>
+#include <StlAPI_Reader.hxx>
+#pragma warning(pop)
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+namespace
+{
+	CStringA ToUtf8PathA(const CString& path)
+	{
+		return CStringA(CW2A(path, CP_UTF8));
+	}
+}
 
 // CMyCadViewerDoc
 
@@ -43,10 +58,85 @@ BOOL CMyCadViewerDoc::OnNewDocument()
 	if (!CDocument::OnNewDocument())
 		return FALSE;
 
-	// TODO: 여기에 재초기화 코드를 추가합니다.
-	// SDI 문서는 이 문서를 다시 사용합니다.
+	myOriginalShape.Nullify();
+	myCurrentFilePath.Empty();
 
 	return TRUE;
+}
+
+bool CMyCadViewerDoc::LoadCadFile(const CString& filePath, CString& outErrorMessage)
+{
+	outErrorMessage.Empty();
+
+	const int dotPos = filePath.ReverseFind(_T('.'));
+	if (dotPos < 0)
+	{
+		outErrorMessage = _T("파일 확장자를 확인할 수 없습니다.");
+		return false;
+	}
+
+	CString extension = filePath.Mid(dotPos + 1);
+	extension.MakeLower();
+
+	TopoDS_Shape shape;
+	if (extension == _T("stl"))
+	{
+		const CStringA filePathA = ToUtf8PathA(filePath);
+		StlAPI_Reader reader;
+		reader.Read(shape, filePathA.GetString());
+		if (shape.IsNull())
+		{
+			outErrorMessage = _T("Failed to read STL file");
+			return false;
+		}
+	}
+	else if (extension == _T("step") || extension == _T("stp"))
+	{
+		const CStringA filePathA = ToUtf8PathA(filePath);
+		STEPControl_Reader reader;
+		IFSelect_ReturnStatus status = reader.ReadFile(filePathA.GetString());
+		if (status != IFSelect_RetDone)
+		{
+			outErrorMessage = _T("Failed to read STEP file");
+			return false;
+		}
+
+		const Standard_Integer nbRoots = reader.TransferRoots();
+		if (nbRoots == 0)
+		{
+			outErrorMessage = _T("No shapes found in STEP file");
+			return false;
+		}
+
+		shape = reader.OneShape();
+	}
+	else
+	{
+		outErrorMessage = _T("Unsupported file type. Please select STEP or STL.");
+		return false;
+	}
+
+	if (shape.IsNull())
+	{
+		outErrorMessage = _T("로드된 형상이 비어 있습니다.");
+		return false;
+	}
+
+	myOriginalShape = shape;
+	myCurrentFilePath = filePath;
+	SetModifiedFlag(FALSE);
+	UpdateAllViews(nullptr);
+	return true;
+}
+
+const TopoDS_Shape* CMyCadViewerDoc::GetOriginalShape() const
+{
+	return myOriginalShape.IsNull() ? nullptr : &myOriginalShape;
+}
+
+const CString& CMyCadViewerDoc::GetCurrentFilePath() const
+{
+	return myCurrentFilePath;
 }
 
 
@@ -58,11 +148,11 @@ void CMyCadViewerDoc::Serialize(CArchive& ar)
 {
 	if (ar.IsStoring())
 	{
-		// TODO: 여기에 저장 코드를 추가합니다.
+		ar << myCurrentFilePath;
 	}
 	else
 	{
-		// TODO: 여기에 로딩 코드를 추가합니다.
+		ar >> myCurrentFilePath;
 	}
 }
 

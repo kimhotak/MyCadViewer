@@ -5,6 +5,11 @@
 
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#include <TopoDS_Shape.hxx>
+#pragma warning(pop)
+
 
 class CMyCadViewerDoc : public CDocument
 {
@@ -22,6 +27,9 @@ public:
 public:
 	virtual BOOL OnNewDocument();
 	virtual void Serialize(CArchive& ar);
+	bool LoadCadFile(const CString& filePath, CString& outErrorMessage);
+	const TopoDS_Shape* GetOriginalShape() const;
+	const CString& GetCurrentFilePath() const;
 #ifdef SHARED_HANDLERS
 	virtual void InitializeSearchContent();
 	virtual void OnDrawThumbnail(CDC& dc, LPRECT lprcBounds);
@@ -36,6 +44,8 @@ public:
 #endif
 
 protected:
+	TopoDS_Shape myOriginalShape;
+	CString myCurrentFilePath;
 
 // 생성된 메시지 맵 함수
 protected:
